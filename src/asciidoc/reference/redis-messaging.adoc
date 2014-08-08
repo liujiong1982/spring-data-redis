@@ -47,7 +47,7 @@ Furthermore, to minimize the application footprint, `RedisMessageListenerContain
 To help with the asynch manner of messages, the container requires a `java.util.concurrent.Executor` ( or Spring's `TaskExecutor`) for dispatching the messages. Depending on the load, the number of listeners or the runtime environment, one should change or tweak the executor to better serve her needs - in particular in managed environments (such as app servers), it is  highly recommended to pick a a proper `TaskExecutor` to take advantage of its runtime.
 
 [[redis:pubsub:subscribe:adapter]]
-=== The `MessageListenerAdapter`
+=== The MessageListenerAdapter
 
 The `MessageListenerAdapter` class is the final component in Spring's asynchronous messaging support: in a nutshell, it allows you to expose almost *any* class as a MDP (there are of course some constraints).
 

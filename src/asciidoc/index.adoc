@@ -1,5 +1,8 @@
 [[spring-data-keyvalue-reference]]
-include::preface.adoc[]
+= Spring Data Redis
+
+include::src/asciidoc/preface.adoc[]
+
 [[introduction]]
 == Introduction
 

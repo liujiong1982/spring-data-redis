@@ -24,19 +24,21 @@ For most tasks, the high-level abstractions and support services are the best ch
 One of the first tasks when using Redis and Spring is to connect to the store through the IoC container. To do that, a Java connector (or binding) is required. No matter the library one chooses, there is only one set of Spring Data Redis API that one needs to use that behaves consistently across all connectors, namely the `org.springframework.data.redis.connection` package and its `RedisConnection` and `RedisConnectionFactory` interfaces for working with and retrieving active `connections` to Redis.
 
 [[redis:connectors:connection]]
-=== `RedisConnection` and `RedisConnectionFactory
+=== RedisConnection and RedisConnectionFactory
 
 `RedisConnection` provides the building block for Redis communication as it handles the communication with the Redis back-end. It also automatically translates the underlying connecting library exceptions to Spring's consistent DAO exception http://docs.spring.io/spring/docs/current/spring-framework-reference/html/dao.html#dao-exceptions[hierarchy] so one can switch the connectors without any code changes as the operation semantics remain the same.
 
 NOTE: For the corner cases where the native library API is required, `RedisConnection` provides a dedicated method `getNativeConnection` which returns the raw, underlying object used for communication.
 
-Active `RedisConnection`s are created through `RedisConnectionFactory`. In addition, the factories act as `PersistenceExceptionTranslator`s, meaning once declared, they allow one to do transparent exception translation. For example, exception translation through the use of the `@Repository` annotation and AOP. For more information see the dedicated http://docs.spring.io/spring/docs/current/spring-framework-reference/html/orm.html#orm-exception-translation[section] in Spring Framework documentation.
+Active `RedisConnection` s are created through `RedisConnectionFactory`. In addition, the factories act as `PersistenceExceptionTranslator` s, meaning once declared, they allow one to do transparent exception translation. For example, exception translation through the use of the `@Repository` annotation and AOP. For more information see the dedicated http://docs.spring.io/spring/docs/current/spring-framework-reference/html/orm.html#orm-exception-translation[section] in Spring Framework documentation.
 
 NOTE: Depending on the underlying configuration, the factory can return a new connection or an existing connection (in case a pool or shared native connection is used).
 
 The easiest way to work with a `RedisConnectionFactory` is to configure the appropriate connector through the IoC container and inject it into the using class.
 
-include::sidebar-connector-features.adoc[]
+IMPORTANT: Unfortunately, currently, not all connectors support all Redis features.  When invoking a method on the Connection` API that is unsupported by the underlying library, an `UnsupportedOperationException is thrown.
+  This situation is likely to be fixed in the future, as the various connectors mature.
+
 [[redis:connectors:jedis]]
 === Configuring Jedis connector
 
@@ -45,12 +47,12 @@ http://github.com/xetorthio/jedis[Jedis] is one of the connectors supported by t
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
- 
-<!-- Jedis ConnectionFactory -->
- 
-<bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"/>
+  <!-- Jedis ConnectionFactory -->
+  <bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory"/>
  
 </beans>
 ----
@@ -60,9 +62,12 @@ For production use however, one might want to tweak the settings such as the hos
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?> 
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:p="http://www.springframework.org/schema/p" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:host-name="server" p:port="6379" />
+  <bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:host-name="server" p:port="6379" />
  
 </beans>
 ----
@@ -77,11 +82,12 @@ A typical JRedis configuration can looks like this:
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:p="http://www.springframework.org/schema/p" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
- 
-<bean id="jredisConnectionFactory" class="org.springframework.data.redis.connection.jredis.JredisConnectionFactory" p:host-name="server" p:port="6379"/>
+  <bean id="jredisConnectionFactory" class="org.springframework.data.redis.connection.jredis.JredisConnectionFactory" p:host-name="server" p:port="6379"/>
  
 </beans>
 ----
@@ -91,24 +97,18 @@ The configuration is quite similar to Jedis, with one notable exception. By defa
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
- 
-<bean id="jredisConnectionFactory" class="org.springframework.data.redis.connection.jredis.JredisConnectionFactory">
- 
-<constructor-arg>
- 
-<bean class="org.springframework.data.redis.connection.jredis.DefaultJredisPool">
- 
-<constructor-arg value="localhost" />
- 
-<constructor-arg value="6379" />
- 
-</bean>
- 
-</constructor-arg>
- 
-</bean>
+  <bean id="jredisConnectionFactory" class="org.springframework.data.redis.connection.jredis.JredisConnectionFactory">
+    <constructor-arg>
+      <bean class="org.springframework.data.redis.connection.jredis.DefaultJredisPool">
+        <constructor-arg value="localhost" />
+        <constructor-arg value="6379" />
+      </bean>
+    </constructor-arg>
+  </bean>
  
 </beans>
 ----
@@ -123,10 +123,13 @@ By now, its configuration is probably easy to guess:
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?> 
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="
- http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"> 
-<bean id="srpConnectionFactory" class="org.springframework.data.redis.connection.srp.SrpConnectionFactory" p:host-name="server" p:port="6379"/> 
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="
+  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+   
+  <bean id="srpConnectionFactory" class="org.springframework.data.redis.connection.srp.SrpConnectionFactory" p:host-name="server" p:port="6379"/>
+   
 </beans>
 ----
 
@@ -142,10 +145,13 @@ Its configuration is probably easy to guess:
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:p="http://www.springframework.org/schema/p" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
- 
-<bean id="lettuceConnectionFactory" class="org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory" p:host-name="server" p:port="6379"/>
+  <bean id="lettuceConnectionFactory" class="org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory" p:host-name="server" p:port="6379"/>
+  
 </beans>
 ----
 
@@ -160,21 +166,36 @@ NOTE: Please note that currently only http://github.com/xetorthio/jedis[Jedis] s
 
 [source,java]
 ----
-@Bean public RedisConnectionFactory jedisConnectionFactory() {
- RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration() .master("mymaster")
- .sentinel("127.0.0.1", 26379) .sentinel("127.0.0.1", 26380);
- return new JedisConnectionFactory(sentinelConfig); } 
+@Bean 
+public RedisConnectionFactory jedisConnectionFactory() {
+  RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration() .master("mymaster")
+  .sentinel("127.0.0.1", 26379) .sentinel("127.0.0.1", 26380);
+  return new JedisConnectionFactory(sentinelConfig); 
+} 
 ----
 
 [[redis:template]]
-== Working with Objects through
-    Monospaced ([RedisTemplate])
+== Working with Objects through RedisTemplate
 
 Most users are likely to use `RedisTemplate` and its coresponding package `org.springframework.data.redis.core` - the template is in fact the central class of the Redis module due to its rich feature set. The template offers a high-level abstraction for Redis interactions. While `RedisConnection` offers low level methods that accept and return binary values (`byte` arrays), the template takes care of serialization and connection management, freeing the user from dealing with such details.
 
 Moreover, the template provides operations views (following the grouping from Redis command http://redis.io/commands[reference]) that offer rich, generified interfaces for working against a certain type or certain key (through the `KeyBound` interfaces) as described below:
 
-include::table-operations-view.adoc[]
+[width="80%",cols="<1,<2",options="header"]
+|=========================================================
+|Interface |Description
+|ValueOperations |Redis string (or value) operations 
+|ListOperations |Redis list operations 
+|SetOperations |Redis set operations 
+|ZSetOperations |Redis zset (or sorted set) operations 
+|HashOperations |Redis hash operations 
+|BoundValueOperations |Redis string (or value) key bound operations 
+|BoundListOperations |Redis list key bound operations 
+|BoundSetOperations |Redis set key bound operations 
+|BoundZSetOperations |Redis zset (or sorted set) key bound operations 
+|BoundHashOperations |Redis hash key bound operations      
+|=========================================================
+
 Once configured, the template is thread-safe and can be reused across multiple instances.
 
 Out of the box, `RedisTemplate` uses a Java-based serializer for most of its operations. This means that any object written or read by the template will be serializer/deserialized through Java. The serialization mechanism can be easily changed on the template, and the Redis module offers several implementations available in the `org.springframework.data.redis.serializer` package - see <<redis:serializer>> for more information. You can also set any of the serializers to null and use RedisTemplate with raw `byte` arrays by setting the `enableDefaultSerializer` property to false. Note that the template requires all keys to be non-null - values can be null as long as the underlying serializer accepts them; read the javadoc of each serializer for more information.
@@ -184,27 +205,33 @@ For cases where a certain template *view* is needed, declare the view as a depen
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:p="http://www.springframework.org/schema/p" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
- 
-<bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:use-pool="true"/>
- 
-<!-- redis template definition -->
- 
-<bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate" p:connection-factory-ref="jedisConnectionFactory"/>
- ... 
+  <bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:use-pool="true"/>
+  <!-- redis template definition -->
+  <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate" p:connection-factory-ref="jedisConnectionFactory"/>
+  ... 
+  
 </beans>
 ----
 
 [source,java]
 ----
-public class Example { // inject the actual template 
- @Autowired private RedisTemplate<String, String> template; // inject the template as ListOperations
- @Resource(name="redisTemplate") private ListOperations<String, String> listOps;
+public class Example { 
+  
+  // inject the actual template 
+  @Autowired 
+  private RedisTemplate<String, String> template; // inject the template as ListOperations
+  
+  @Resource(name="redisTemplate") 
+  private ListOperations<String, String> listOps;
 
- public void addLink(String userId, URL url) {
-   listOps.leftPush(userId, url.toExternalForm()); 
- }
+  public void addLink(String userId, URL url) {
+    listOps.leftPush(userId, url.toExternalForm()); 
+  }
 }
 ----
 
@@ -216,21 +243,28 @@ Since it's quite common for the keys and values stored in Redis to be `java.lang
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:p="http://www.springframework.org/schema/p" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
  
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+  <bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:use-pool="true"/>
  
-<bean id="jedisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" p:use-pool="true"/>
- 
-<bean id="stringRedisTemplate" class="org.springframework.data.redis.core.StringRedisTemplate" p:connection-factory-ref="jedisConnectionFactory"/>
- ... 
+  <bean id="stringRedisTemplate" class="org.springframework.data.redis.core.StringRedisTemplate" p:connection-factory-ref="jedisConnectionFactory"/>
+  ... 
 </beans>
 ----
 
 [source,java]
 ----
-public class Example { @Autowired
- private StringRedisTemplate redisTemplate; public void addLink(String userId, URL url) {
- redisTemplate.opsForList().leftPush(userId, url.toExternalForm()); }
+public class Example { 
+  
+  @Autowired
+  private StringRedisTemplate redisTemplate; 
+  
+  public void addLink(String userId, URL url) {
+    redisTemplate.opsForList().leftPush(userId, url.toExternalForm()); 
+  }
 }
 ----
 
@@ -239,6 +273,7 @@ As with the other Spring templates, `RedisTemplate` and `StringRedisTemplate` al
 [source,java]
 ----
 public void useCallback() { 
+
   redisTemplate.execute(new RedisCallback<Object>() { 
     public Object doInRedis(RedisConnection connection) throws DataAccessException { 
       Long size = connection.dbSize();
@@ -254,10 +289,14 @@ public void useCallback() {
 
 From the framework perspective, the data stored in Redis is just bytes. While Redis itself supports various types, for the most part these refer to the way the data is stored rather then what it represents. It is up to the user to decide whether the information gets translated into Strings or any other objects. The conversion between the user (custom) types and raw data (and vice-versa) is handled in Spring Data Redis through the `RedisSerializer` interface (package `org.springframework.data.redis.serializer`) which as the name implies, takes care of the serialization process. Multiple implementations are available out of the box, two of which have been already mentioned before in this documentation: the `StringRedisSerializer` and the `JdkSerializationRedisSerializer`. However one can use `OxmSerializer` for Object/XML mapping through Spring 3 http://docs.spring.io/spring/docs/current/spring-framework-reference/html/oxm.html[OXM] support or either `JacksonJsonRedisSerializer` or `Jackson2JsonRedisSerializer` for storing data in http://en.wikipedia.org/wiki/JSON[JSON] format. Do note that the storage format is not limited only to values - it can be used for keys, values or hashes without any restrictions.
 
-include::redis-messaging.adoc[]
-include::redis-transactions.adoc[]
-include::pipelining.adoc[]
-include::redis-scripting.adoc[]
+include::./redis-messaging.adoc[]
+
+include::./redis-transactions.adoc[]
+
+include::./pipelining.adoc[]
+
+include::./redis-scripting.adoc[]
+
 [[redis:support]]
 == Support Classes
 
@@ -271,23 +310,29 @@ The atomic counters make it easy to wrap Redis key incrementation while the coll
 [source,xml]
 ----
 <?xml version="1.0" encoding="UTF-8"?> 
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
- xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="
- http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"> 
-<bean id="queue" class="org.springframework.data.redis.support.collections.DefaultRedisList"> 
-<constructor-arg ref="redisTemplate"/> 
-<constructor-arg value="queue-key"/> 
-</bean> 
+<beans xmlns="http://www.springframework.org/schema/beans" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:p="http://www.springframework.org/schema/p" xsi:schemaLocation="
+  http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"> 
+
+  <bean id="queue" class="org.springframework.data.redis.support.collections.DefaultRedisList"> 
+    <constructor-arg ref="redisTemplate"/> 
+    <constructor-arg value="queue-key"/> 
+  </bean>
+   
 </beans>
 ----
 
 [source,java]
 ----
-public class AnotherExample { // injected
- private Deque<String> queue;
- public void addTag(String tag) {
-   queue.push(tag);
- }
+public class AnotherExample { 
+ 
+  // injected
+  private Deque<String> queue;
+  
+  public void addTag(String tag) {
+    queue.push(tag);
+  }
 }
 ----
 
@@ -300,13 +345,18 @@ Spring Redis provides an implementation for Spring http://docs.spring.io/spring/
 
 [source,xml]
 ----
-<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cache="http://www.springframework.org/schema/cache"
- xmlns:c="http://www.springframework.org/schema/c" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
- http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd"> 
-<!-- turn on declarative caching --> 
-<cache:annotation-driven /> 
-<!-- declare Redis Cache Manager --> 
-<bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager" c:template-ref="redisTemplate"/> 
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xmlns:cache="http://www.springframework.org/schema/cache"
+  xmlns:c="http://www.springframework.org/schema/c" 
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd"> 
+
+  <!-- turn on declarative caching --> 
+  <cache:annotation-driven /> 
+
+  <!-- declare Redis Cache Manager --> 
+  <bean id="cacheManager" class="org.springframework.data.redis.cache.RedisCacheManager" c:template-ref="redisTemplate"/> 
 </beans> 
 ----
 
