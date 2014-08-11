@@ -56,7 +56,8 @@ configurations.all {
           eruby: 'erubis',
           attributes: [
               linkcss: 'true',
-              copycss : '',
+              copycss : 'spring.css',
+              stylesheet: "spring.css",
               icons : 'font',
               'source-highlighter': 'prettify',
               sectanchors : '',
@@ -68,7 +69,6 @@ configurations.all {
               numbered: '',
               version: project.version,
               baseDir: "$sourceDir",
-              stylesheet: "spring.css",
               resourcesDir: "$rootDir/src/main/resources",
               referenceDir: "$sourceDir/reference"
           ]
@@ -91,7 +91,6 @@ dependencies {
     compile "org.springframework:spring-tx:$springVersion"
     compile("org.springframework:spring-oxm:$springVersion", optional)
     compile "org.springframework:spring-aop:$springVersion"
-    compile "org.springframework.integration:spring-integration-core:4.0.3.RELEASE"
 
     // Redis Drivers
     compile("redis.clients:jedis:$jedisVersion", optional)
@@ -200,12 +199,8 @@ task docsZip(type: Zip) {
 
     from (asciidoctor.outputDir) {
         include "index.html"
-        into 'reference/htmlsingle'
-    }
-
-    from ("src/main/resources/asciidoc") {
         include "spring.css"
-        into "reference/htmlsingle"
+        into 'reference/htmlsingle'
     }
 }
 
